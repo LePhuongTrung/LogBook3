@@ -60,4 +60,14 @@ public class urlDatabase extends SQLiteOpenHelper {
         }
         return cursor;
     }
+    public void delete(Integer row_id){
+        SQLiteDatabase db = this.getWritableDatabase();
+        long result = db.delete(TABLE_NAME, "id=?", new String[]{String.valueOf(row_id)});
+        if(result == -1){
+            Toast.makeText(context, "Failed to Delete.", Toast.LENGTH_SHORT).show();
+        }else{
+            Toast.makeText(context, "Successfully Deleted.", Toast.LENGTH_SHORT).show();
+        }
+        return;
+    }
 }

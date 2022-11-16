@@ -18,11 +18,14 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+import com.squareup.picasso.Callback;
+import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,87 +34,91 @@ public class MainActivity extends AppCompatActivity {
 
     ImageView img;
     TextInputLayout urlEnter;
-    TextInputEditText urlEnterEdit;
+    TextView numberPage;
 
     urlDatabase DB;
-    ArrayList<String> link ;
+    ArrayList<String> url ;
 
-    CustomAdapter customAdapter;
-    int i = 0,check;
+
+    int i = 0,current = 0;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         urlEnter = findViewById(R.id.textInputLayout);
-
         img = findViewById(R.id.imageView);
-
+        numberPage = findViewById(R.id.textView);
 
         DB = new  urlDatabase(MainActivity.this);
-        link = new ArrayList<>();
+        url = new ArrayList<>();
 
         storeDataInArrays();
-        check = link.size();
-        extracted();
+        if (url.size() == 0){
+            url.add("https://as2.ftcdn.net/v2/jpg/04/75/01/23/1000_F_475012363_aNqXx8CrsoTfJP5KCf1rERd6G50K0hXw.jpg");
+            extracted();
+        } else {
+            extracted();
+        }
 
     }
 
     //set img
     private void extracted() {
-        Glide.with(MainActivity.this)
-                .load(link.get(i))
-                .centerCrop()
-                .into(img);
+        numberPage.setText((i+1)+"/"+ url.size());
+        Picasso.get()
+//                .load("https://as2.ftcdn.net/v2/jpg/04/75/01/23/1000_F_475012363_aNqXx8CrsoTfJP5KCf1rERd6G50K0hXw.jpg")
+                .load(url.get(i))
+                .into(img, new Callback() {
+                    @Override
+                    public void onSuccess() {
+                        Log.i("numberPage:", String.valueOf(i));
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        DB.delete((i + 1));
+                        storeDataInArrays();
+                        i = current;
+                        urlEnter.getEditText().setText("");
+                        Toast.makeText(MainActivity.this, "Url not return Img", Toast.LENGTH_SHORT).show();
+                        extracted();
+                    }
+                });
     }
 
     public void nextImg(View view){
         i++;
-        if (i >=link.size())
+        if (i >=url.size())
             i = 0;
+        current = i;
         extracted();
     }
 
     public void previousImg(View view){
         i--;
         if (i <0)
-            i = link.size() -1;
+            i = url.size() -1;
+        current = i;
         extracted();
     }
     public void addLink(View view){
         String urlStr = urlEnter.getEditText().getText().toString();
-
-        if (isValidURL(urlStr) == true){
-            DB.insertUrl(urlStr);
-            storeDataInArrays();
-            i = link.size() -1;
-            extracted();
-        } else {
-            Toast.makeText(this, "Url is not vail Please enter again", Toast.LENGTH_SHORT).show();
-        }
+        DB.insertUrl(urlStr);
+        storeDataInArrays();
+        i = url.size() - 1;
+        extracted();
     }
 
-    public boolean isValidURL(String urlStr) {
-        try{
-            new URL(urlStr).toURI();
-            return true;
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-            return false;
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
 
     void storeDataInArrays(){
+        url.clear();
         Cursor cursor = DB.readAllData();
         if(cursor.getCount() == 0){
-            urlEnterEdit = findViewById(R.id.urlEnter);
-            urlEnterEdit.setText("No photos yet, please add a new one");
+            numberPage.setText("No photos yet, please add a new one");
         }else{
             while (cursor.moveToNext()){
-                link.add(cursor.getString(1));
+                url.add(cursor.getString(1));
             }
         }
     }
